@@ -25,6 +25,30 @@ is_user_running_process()
     ps -u "$1" -o cmd | grep -q "^$2$" || ps -u "$1" -o comm | grep -q "^$2$"
 }
 
+maybe_send_email()
+{
+    hour="$(date -d "@$last_date" +%H | grep '[1-9]\?[0-9]')"
+    [[ $hour < 10 || $hour -ge 17 ]] && return
+    time_diff=$((60 * 60 * 6))
+    send_email=false
+    if [[ -z "$orig_email" ]]; then
+         if [[ $(($last_date - $orig_date)) > $time_diff ]]; then
+             send_email=true
+         fi
+     else
+        if [[ $(($last_date - $last_email)) > $time_diff ) ]]; then
+            send_email=true
+        fi
+    fi
+    if $send_email; then
+        if [[ -z "$orig_email" ]]; then
+            orig_email=$last_date
+        fi
+        last_email=$last_date
+        echo "TODO - actually send email"
+    fi
+}
+
 dir=".screensaver-check/$HOSTNAME"
 mkdir -p "$dir"
 
@@ -55,6 +79,7 @@ for u in $(users | tr ' ' '\n' | sort -u); do
         else
             read orig_date last_date orig_email last_email <"$file"
             last_date="$(date +%s)"
+            maybe_send_email
             echo "$orig_date $last_date $orig_email $last_email" >"$file"
         fi
     else
