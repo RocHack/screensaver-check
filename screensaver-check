@@ -45,7 +45,28 @@ maybe_send_email()
             orig_email=$last_date
         fi
         last_email=$last_date
-        echo "TODO - actually send email"
+        host="$(grep -o '^\w*' <<< "$HOSTNAME")"
+        case "$host" in
+            (algonquin|armstrong|cliff|colvin|gothics|haystack|hough|iroquois|marshall|panther|redfield|skylight|whiteface|wright)
+                lab="CS minor's lab"
+                ;;
+            (blake|cascade|colden|macomb|marcy|nye|phelps|porter|sawteeth|seward|tabletop)
+                lab="CS major's lab"
+                ;;
+        esac
+        email="$(printf "%s@%s" jkottas u.rochester.edu)"
+        sendmail "$email" <<EOF
+from:ugc@rochester.edu
+subject:You've forgotten to log off $HOSTNAME in the $lab
+Other people in the $lab who want to use $host can't while you're logged on.
+Please log off.
+
+Thank you.
+
+$(echo "$u")
+$(cat "$file")
+$(w)
+EOF
     fi
 }
 
