@@ -69,6 +69,13 @@ EOF
 dir=".screensaver-check/$HOSTNAME"
 mkdir -p "$dir"
 
+uniq_users="$(users | tr ' ' '\n' | sort -u)"
+for u in $(ls "$dir"); do
+    if ! grep -q "^$u$" <<< "$uniq_users"; then
+        rm "$dir/$u"
+    fi
+done
+
 for u in $(users | tr ' ' '\n' | sort -u); do
     screensaver_running=false
 
