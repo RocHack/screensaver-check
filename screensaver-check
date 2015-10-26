@@ -28,15 +28,15 @@ is_user_running_process()
 maybe_send_email()
 {
     hour="$(date -d "@$last_date" +%H | grep '[1-9]\?[0-9]')"
-    [[ $hour < 10 || $hour -ge 17 ]] && return
+    (( hour < 10 || hour >= 17 )) && return
     time_diff=$((60 * 60 * 6))
     send_email=false
     if [[ -z "$orig_email" ]]; then
-         if [[ $(($last_date - $orig_date)) > $time_diff ]]; then
+         if (( last_date - orig_date > time_diff )); then
              send_email=true
          fi
      else
-        if [[ $(($last_date - $last_email)) > $time_diff ]]; then
+        if (( last_date - last_email > time_diff )); then
             send_email=true
         fi
     fi
@@ -56,16 +56,12 @@ maybe_send_email()
         esac
         email="$(printf "%s@%s" jkottas u.rochester.edu)"
         sendmail "$email" <<EOF
-from:ugc@rochester.edu
+from:ugc@csug.rochester.edu
 subject:You've forgotten to log off $HOSTNAME in the $lab
 Other people in the $lab who want to use $host can't while you're logged on.
 Please log off.
 
 Thank you.
-
-$(echo "$u")
-$(cat "$file")
-$(w)
 EOF
     fi
 }
