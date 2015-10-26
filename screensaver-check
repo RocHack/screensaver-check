@@ -36,7 +36,7 @@ maybe_send_email()
              send_email=true
          fi
      else
-        if [[ $(($last_date - $last_email)) > $time_diff ) ]]; then
+        if [[ $(($last_date - $last_email)) > $time_diff ]]; then
             send_email=true
         fi
     fi
