@@ -1,11 +1,32 @@
 #!/usr/bin/env bash
 
+list=true
+
+for arg; do
+    case "$arg" in
+        (-l|--list)
+            list=true
+            ;;
+
+        (--email)
+            list=false
+            ;;
+
+        (*)
+            echo "error: unrecognized argument '$arg'" >&2
+            exit 1
+    esac
+done
+
 # $1 should be the username
 # $2 is the command line or command of the process to check
 is_user_running_process()
 {
     ps -u "$1" -o cmd | grep -q "^$2$" || ps -u "$1" -o comm | grep -q "^$2$"
 }
+
+dir=".screensaver-check/$HOSTNAME"
+mkdir -p "$dir"
 
 for u in $(users | tr ' ' '\n' | sort -u); do
     screensaver_running=false
@@ -21,5 +42,22 @@ for u in $(users | tr ' ' '\n' | sort -u); do
         done
     fi
 
-    echo $u $screensaver_running
+    if $list; then
+        $screensaver_running && echo "$u"
+        continue
+    fi
+
+    file="$dir/$u"
+    if $screensaver_running; then
+        if [[ ! -f "$file" ]]; then
+            date="$(date +%s)"
+            echo "$date $date" >"$file"
+        else
+            read orig_date last_date orig_email last_email <"$file"
+            last_date="$(date +%s)"
+            echo "$orig_date $last_date $orig_email $last_email" >"$file"
+        fi
+    else
+        rm "$file"
+    fi
 done
