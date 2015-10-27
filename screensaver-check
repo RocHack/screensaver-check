@@ -27,7 +27,7 @@ is_user_running_process()
 
 maybe_send_email()
 {
-    hour="$(date -d "@$last_date" +%H | grep '[1-9]\?[0-9]')"
+    hour="$(date -d "@$last_date" +%H | grep -o '[1-9]\?[0-9]')"
     (( hour < 10 || hour >= 17 )) && return
     time_diff=$((60 * 60 * 6))
     send_email=false
