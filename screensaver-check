@@ -76,6 +76,11 @@ for u in $(ls "$dir"); do
     fi
 done
 
+is_user_on_bad_tty()
+{
+    who | awk '$1 == "'"$1"'" {print $2}' | grep -qE '^(tty[123]|:0)$'
+}
+
 for u in $(users | tr ' ' '\n' | sort -u); do
     screensaver_running=false
 
@@ -96,7 +101,7 @@ for u in $(users | tr ' ' '\n' | sort -u); do
     fi
 
     file="$dir/$u"
-    if $screensaver_running; then
+    if $screensaver_running && is_user_on_bad_tty "$u"; then
         if [[ ! -f "$file" ]]; then
             date="$(date +%s)"
             echo "$date $date" >"$file"
