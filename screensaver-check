@@ -64,6 +64,14 @@ Other people in the $lab who want to use $host can't while you're logged on.
 Please log off.
 
 Thank you.
+
+----- DEBUG INFO -----
+
+$(echo $u)
+$(date +%s)
+$(cat $file)
+$(w)
+$(urssh -l)
 EOF
     fi
 }
