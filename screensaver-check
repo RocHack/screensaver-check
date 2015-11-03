@@ -18,11 +18,13 @@ for arg; do
     esac
 done
 
+grep -qF cycle <<< "$HOSTNAME" && exit
+
 # $1 should be the username
-# $2 is the command line or command of the process to check
+# $2 is the command of the process to check
 is_user_running_process()
 {
-    ps -u "$1" -o cmd | grep -q "^$2$" || ps -u "$1" -o comm | grep -q "^$2$"
+    ps -u "$1" -o comm | grep -q "^$2$"
 }
 
 maybe_send_email()
@@ -81,14 +83,16 @@ is_user_on_bad_tty()
     who | awk '$1 == "'"$1"'" {print $2}' | grep -qE '^(tty[123]|:0)$'
 }
 
-for u in $(users | tr ' ' '\n' | sort -u); do
+bins="$(ls /usr/libexec/xscreensaver)"
+
+for u in $uniq_users; do
     screensaver_running=false
 
     if is_user_running_process "$u" xlock; then
         screensaver_running=true
     else
-        for p in $(ls /usr/libexec/xscreensaver); do
-            if is_user_running_process "$u" "$p -root"; then
+        for p in $bins; do
+            if is_user_running_process "$u" "$p"; then
                 screensaver_running=true
                 break
             fi
