@@ -116,6 +116,6 @@ for u in $uniq_users; do
             echo "$orig_date $last_date $orig_email $last_email" >"$file"
         fi
     else
-        rm "$file"
+        rm -f "$file"
     fi
 done
