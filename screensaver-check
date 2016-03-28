@@ -1,121 +1,22 @@
 #!/usr/bin/env bash
 
-list=true
-
-for arg; do
-    case "$arg" in
-        (-l|--list)
-            list=true
-            ;;
-
-        (--email)
-            list=false
-            ;;
-
-        (*)
-            echo "error: unrecognized argument '$arg'" >&2
-            exit 1
-    esac
-done
-
-grep -qF cycle <<< "$HOSTNAME" && exit
-
 # $1 should be the username
-# $2 is the command of the process to check
-is_user_running_process()
+user_is_locked()
 {
-    ps -u "$1" -o comm | grep -q "^$2$"
-}
-
-maybe_send_email()
-{
-    hour="$(date -d "@$last_date" +%H | grep -o '[1-9]\?[0-9]$')"
-    (( hour < 10 || hour >= 17 )) && return
-    time_diff=$((60 * 60 * 6))
-    send_email=false
-    if [[ -z "$orig_email" ]]; then
-         if (( last_date - orig_date > time_diff )); then
-             send_email=true
-         fi
-     else
-        if (( last_date - last_email > time_diff )); then
-            send_email=true
-        fi
+    local xpid lock_pgrms
+    if ps -u "$1" -o comm | grep -q "^xlock$"; then
+        return 0
     fi
-    if $send_email; then
-        if [[ -z "$orig_email" ]]; then
-            orig_email=$last_date
-        fi
-        last_email=$last_date
-        host="$(grep -o '^\w*' <<< "$HOSTNAME")"
-        case "$host" in
-            (algonquin|armstrong|cliff|colvin|gothics|haystack|hough|iroquois|marshall|panther|redfield|skylight|whiteface|wright)
-                lab="CS minor's lab"
-                ;;
-            (blake|cascade|colden|macomb|marcy|nye|phelps|porter|sawteeth|seward|tabletop)
-                lab="CS major's lab"
-                ;;
-        esac
-        email="$(printf "%s@%s" jkottas u.rochester.edu)"
-        sendmail "$email" <<EOF
-from:ugc@csug.rochester.edu
-subject:You've forgotten to log off $HOSTNAME in the $lab
-Other people in the $lab who want to use $host can't while you're logged on.
-Please log off.
-
-Thank you.
-EOF
-    fi
+    xpid="$(ps -u "$1" -o comm,pid | awk '$1 == "xscreensaver" {print $2}')"
+    lock_pgrms="$(ps -u "$1" -o ppid,comm | \
+        awk "\$1 == \"$xpid\" {print \$2}")"
+    [ -n "$lock_pgrms" ]
 }
-
-dir=".screensaver-check/$HOSTNAME"
-mkdir -p "$dir"
 
 uniq_users="$(users | tr ' ' '\n' | sort -u)"
-for u in $(ls "$dir"); do
-    if ! grep -q "^$u$" <<< "$uniq_users"; then
-        rm "$dir/$u"
-    fi
-done
-
-is_user_on_bad_tty()
-{
-    who | awk '$1 == "'"$1"'" {print $2}' | grep -qE '^(tty[123]|:0)$'
-}
-
-bins="$(ls /usr/libexec/xscreensaver)"
 
 for u in $uniq_users; do
-    screensaver_running=false
-
-    if is_user_running_process "$u" xlock; then
-        screensaver_running=true
-    else
-        for p in $bins; do
-            if is_user_running_process "$u" "$p"; then
-                screensaver_running=true
-                break
-            fi
-        done
-    fi
-
-    if $list; then
-        $screensaver_running && echo "$u"
-        continue
-    fi
-
-    file="$dir/$u"
-    if $screensaver_running && is_user_on_bad_tty "$u"; then
-        if [[ ! -f "$file" ]]; then
-            date="$(date +%s)"
-            echo "$date $date" >"$file"
-        else
-            read orig_date last_date orig_email last_email <"$file"
-            last_date="$(date +%s)"
-            maybe_send_email
-            echo "$orig_date $last_date $orig_email $last_email" >"$file"
-        fi
-    else
-        rm -f "$file"
+    if user_is_locked "$u"; then
+        echo "$u"
     fi
 done
